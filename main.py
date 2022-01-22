@@ -1,7 +1,6 @@
-from turtle import left, right
+from socket import SO_ERROR
+from turtle import update
 import pygame
-from pygame import image
-from pygame.surface import Surface
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 960
@@ -10,6 +9,14 @@ BLACK = (0, 0, 0)
 
 FPS = 30
 
+current_coords = [[0, 0]]
+
+endlevel = []
+for i in range(1100, 1281):
+    some_coords = []
+    some_coords.append(i)
+    some_coords.append(960)
+    endlevel.append(some_coords)
 
 pygame.init()
 button_sound = pygame.mixer.Sound('btn_sound.wav')
@@ -44,7 +51,9 @@ class Player(pygame.sprite.Sprite):
         self.collected_cheese = 0
 
     def update(self):
+        self.new_level()
         self.rect.x += self.change_x
+        current_coords[0][0] = self.rect.x
         block_list = pygame.sprite.spritecollide(self, self.walls, False)
         for block in block_list:
             if self.change_x > 0:
@@ -53,6 +62,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect.left = block.rect.right
 
         self.rect.y += self.change_y
+        current_coords[0][1] = self.rect.y
         block_list = pygame.sprite.spritecollide(self, self.walls, False)    
         for block in block_list:
             if self.change_y > 0:
@@ -74,6 +84,19 @@ class Player(pygame.sprite.Sprite):
         if self.direction == 'down':
             self.image = self.player_down
 
+    def new_level(self):
+        if current_coords[0] in endlevel:
+            wall_coords.clear()
+            for i in wall_coords1:
+                wall_coords.append(i)
+            current_coords[0][0] = 10
+            current_coords[0][1] = 50
+            player.kill()
+            self.rect.x = 10
+            self.rect.y = 50
+            pause_after_first()
+            return start_game
+            
     def rotate(self):
         self.image = pygame.transform.rotate(self.image, 90)
 
@@ -99,6 +122,7 @@ class Cheese(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
 
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
@@ -144,6 +168,75 @@ class Button:
 
         print_text(message=message, x = x + 10, y = y + 10, font_size=font_size)
 
+def pause_after_first():
+    menu_background = pygame.image.load('menu.jpg')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    continue_button = Button(400, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        continue_button.draw(496, 650, 'Следующий уровень', start_level2, 50)
+        pygame.display.update()
+        clock.tick(60)
+
+def start_level2():
+    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player
+
+    for i in all_sprites_list:
+        i.kill
+    screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+    all_sprites_list = pygame.sprite.Group()
+    wall_list = pygame.sprite.Group()
+
+    wall_coords = [
+        [0, 0, 1280, 10],
+        [1270, 0, 10, 960],
+        [0, 950, 1140, 10],
+        [0, 0, 10, 1280],
+        [0, 130, 1000, 10],
+        [1000, 130, 10, 100],
+        [200, 230, 810, 10],
+        [200, 230, 10, 400],
+        [400, 430, 880, 10],
+        [200, 630, 100, 10],
+        [450, 630, 680, 10],
+        [1130, 630, 10, 330]
+    ]
+
+    for coord in wall_coords:
+        wall = Wall(coord[0], coord[1], coord[2], coord[3])
+        wall_list.add(wall)
+        all_sprites_list.add(wall)
+
+    cheese = Cheese(50, 50)
+
+    cheese_list = pygame.sprite.Group()
+    cheese_coords = [
+        [900, 160],
+        [1150, 360],
+        [1050, 770]
+    ]
+
+    for coord in cheese_coords:
+        cheese = Cheese(coord[0], coord[1])
+        cheese_list.add(cheese)
+        all_sprites_list.add(cheese)
+
+    player = Player(10, 50)
+    player.walls = wall_list
+    all_sprites_list.add(player)
+
+    player.cheese = cheese_list
+    pygame.init()
+    clock = pygame.time.Clock()
+    start_game()
 
 def show_menu(): 
     menu_background = pygame.image.load('menu.jpg')
@@ -166,11 +259,9 @@ def show_menu():
         pygame.display.update()
         clock.tick(60)
 
-
 def start_game():
 
     global player, screen
-
     start = True
     while start:
         for event in pygame.event.get():
@@ -236,6 +327,9 @@ wall_coords = [
     [800, 300, 340, 10],
     [1140, 300, 10, 1000]
 ]
+
+wall_coords1 = [[10, 10, 10, 10]]
+
 
 for coord in wall_coords:
     wall = Wall(coord[0], coord[1], coord[2], coord[3])
