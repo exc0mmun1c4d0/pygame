@@ -1,5 +1,3 @@
-from socket import SO_ERROR
-from turtle import update
 import pygame
 
 SCREEN_WIDTH = 1280
@@ -8,6 +6,8 @@ SCREEN_HEIGHT = 960
 BLACK = (0, 0, 0)
 
 FPS = 30
+
+level = 1
 
 current_coords = [[0, 0]]
 
@@ -20,6 +20,7 @@ for i in range(1100, 1281):
 
 pygame.init()
 button_sound = pygame.mixer.Sound('btn_sound.wav')
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, img='mouse.png'):
@@ -72,7 +73,6 @@ class Player(pygame.sprite.Sprite):
 
         cheese_list = pygame.sprite.spritecollide(self, self.cheese, False)
         for cheese in cheese_list:
-            self.collected_cheese += 1
             cheese.kill()
 
         if self.direction == 'right':
@@ -85,18 +85,35 @@ class Player(pygame.sprite.Sprite):
             self.image = self.player_down
 
     def new_level(self):
-        if current_coords[0] in endlevel:
-            wall_coords.clear()
-            for i in wall_coords1:
-                wall_coords.append(i)
-            current_coords[0][0] = 10
-            current_coords[0][1] = 50
-            player.kill()
-            self.rect.x = 10
-            self.rect.y = 50
-            pause_after_first()
-            return start_game
-            
+        global level
+
+        if level == 1:
+            if current_coords[0] in endlevel:
+                wall_coords.clear()
+                current_coords[0][0] = 10
+                current_coords[0][1] = 50
+                player.kill()
+                self.rect.x = 10
+                self.rect.y = 50
+                level += 1
+                pause_after_first()
+                return start_game, self.new_level
+        elif level == 2:
+            if current_coords[0] in endlevel:
+                wall_coords.clear()
+                current_coords[0][0] = 10
+                current_coords[0][1] = 50
+                player.kill()
+                self.rect.x = 10
+                self.rect.y = 50
+                level += 1
+                pause_after_second()
+                return start_game
+        elif level == 3:
+            if current_coords[0] in endlevel:
+                end_screen()
+                return start_game, self.new_level
+
     def rotate(self):
         self.image = pygame.transform.rotate(self.image, 90)
 
@@ -131,6 +148,7 @@ class Background(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (1280, 960))
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
+
 
 def print_text(message, x, y, font_color=(0, 0, 0), font_type='bip.ttf', font_size=30):
     font_type = pygame.font.Font(font_type, font_size)
@@ -168,11 +186,12 @@ class Button:
 
         print_text(message=message, x = x + 10, y = y + 10, font_size=font_size)
 
+
 def pause_after_first():
-    menu_background = pygame.image.load('menu.jpg')
+    menu_background = pygame.image.load('complete.JPEG')
     menu_background = pygame.transform.scale(menu_background, (1280, 960))
 
-    continue_button = Button(400, 70)
+    continue_button = Button(510, 70)
 
     show = True
     while show:
@@ -182,15 +201,35 @@ def pause_after_first():
                 quit()
         
         screen.blit(menu_background, (0, 0))
-        continue_button.draw(496, 650, 'Следующий уровень', start_level2, 50)
+        continue_button.draw(385, 650, 'Следующий уровень', start_level2, 50)
         pygame.display.update()
         clock.tick(60)
+
+
+def pause_after_second():
+    menu_background = pygame.image.load('complete.JPEG')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    continue_button = Button(510, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        continue_button.draw(385, 650, 'Следующий уровень', start_level3, 50)
+        pygame.display.update()
+        clock.tick(60)
+
 
 def start_level2():
     global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player
 
     for i in all_sprites_list:
-        i.kill
+        i.kill()
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     all_sprites_list = pygame.sprite.Group()
     wall_list = pygame.sprite.Group()
@@ -238,6 +277,62 @@ def start_level2():
     clock = pygame.time.Clock()
     start_game()
 
+
+def start_level3():
+    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player
+
+    for i in all_sprites_list:
+        i.kill
+    screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+    all_sprites_list = pygame.sprite.Group()
+    wall_list = pygame.sprite.Group()
+
+    wall_coords = [ 
+        [0, 0, 1280, 10], 
+        [1270, 0, 10, 960], 
+        [0, 950, 1140, 10], 
+        [0, 0, 10, 1280], 
+        [0, 160, 210, 10], 
+        [210, 160, 10, 320],  
+        [210, 650, 10, 100], 
+        [390, 0, 10, 550], 
+        [210, 750, 600, 10], 
+        [390, 550, 220, 10], 
+        [600, 400, 10, 150], 
+        [600, 0, 10, 200], 
+        [800, 200, 10, 550], 
+        [800, 200, 350, 10], 
+        [1140, 200, 10, 1100] 
+    ]
+
+    for coord in wall_coords:
+        wall = Wall(coord[0], coord[1], coord[2], coord[3])
+        wall_list.add(wall)
+        all_sprites_list.add(wall)
+
+    cheese = Cheese(50, 50)
+
+    cheese_list = pygame.sprite.Group()
+    cheese_coords = [ 
+        [450, 80], 
+        [50, 200], 
+        [1000, 300] 
+    ]
+
+    for coord in cheese_coords:
+        cheese = Cheese(coord[0], coord[1])
+        cheese_list.add(cheese)
+        all_sprites_list.add(cheese)
+
+    player = Player(10, 50)
+    player.walls = wall_list
+    all_sprites_list.add(player)
+
+    player.cheese = cheese_list
+    pygame.init()
+    clock = pygame.time.Clock()
+    start_game()
+
 def show_menu(): 
     menu_background = pygame.image.load('menu.jpg')
     menu_background = pygame.transform.scale(menu_background, (1280, 960))
@@ -259,9 +354,32 @@ def show_menu():
         pygame.display.update()
         clock.tick(60)
 
-def start_game():
 
+def end_screen():
+    menu_background = pygame.image.load('endscreen.jpg')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    main_menu = Button(288, 70)
+    quit_button = Button(122, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        main_menu.draw(396, 850, 'Main menu', show_menu, 50)
+        quit_button.draw(762, 850, 'Quit', quit, 50)
+
+        pygame.display.update()
+        clock.tick(60)
+
+
+def start_game():
     global player, screen
+
     start = True
     while start:
         for event in pygame.event.get():
@@ -327,9 +445,6 @@ wall_coords = [
     [800, 300, 340, 10],
     [1140, 300, 10, 1000]
 ]
-
-wall_coords1 = [[10, 10, 10, 10]]
-
 
 for coord in wall_coords:
     wall = Wall(coord[0], coord[1], coord[2], coord[3])
