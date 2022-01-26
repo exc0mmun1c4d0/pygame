@@ -1,3 +1,4 @@
+import random
 import pygame
 
 SCREEN_WIDTH = 1280
@@ -23,7 +24,8 @@ button_sound = pygame.mixer.Sound('btn_sound.wav')
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, img='mouse.png'):
+    def __init__(self, x, y, img='mouse.png'): 
+        global alive
         super().__init__()
         self.image = pygame.image.load(img).convert_alpha()
         self.image = pygame.transform.scale(self.image, (110, 75))
@@ -51,6 +53,9 @@ class Player(pygame.sprite.Sprite):
         self.cheese = None
         self.collected_cheese = 0
 
+        self.enemies = pygame.sprite.Group()
+        self.alive = True
+
     def update(self):
         self.new_level()
         self.rect.x += self.change_x
@@ -74,6 +79,17 @@ class Player(pygame.sprite.Sprite):
         cheese_list = pygame.sprite.spritecollide(self, self.cheese, False)
         for cheese in cheese_list:
             cheese.kill()
+
+        if pygame.sprite.spritecollide(self, self.enemies, False):
+            self.alive = False
+
+        if not self.alive:
+            if level == 1:
+                dead_screen_after_first()
+            elif level == 2:
+                dead_screen_after_second()
+            else:
+                dead_screen_after_third()
 
         if self.direction == 'right':
             self.image = self.player_right
@@ -108,7 +124,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect.y = 50
                 level += 1
                 pause_after_second()
-                return start_game
+                return start_game, self.new_level
         elif level == 3:
             if current_coords[0] in endlevel:
                 end_screen()
@@ -139,6 +155,57 @@ class Cheese(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, img='cat.png'):
+        super().__init__()
+        self.image = pygame.image.load(img).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (70, 70))
+
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.start = x
+        self.stop = x + 250
+        self.direct = 1
+
+    def update(self):
+        if self.rect.x >= self.stop:
+            self.rect.x = self.stop
+            self.direct = -1
+
+        if self.rect.x <= self.start:
+            self.rect.x = self.start
+            self.direct = 1
+
+        self.rect.x += self.direct * 2
+
+class Enemy1(pygame.sprite.Sprite):
+    def __init__(self, x, y, img='cat.png'):
+        super().__init__()
+        self.image = pygame.image.load(img).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (70, 70))
+
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.start = y
+        self.stop = y + 220
+        self.direct = 1
+
+    def update(self):
+        if self.rect.y >= self.stop:
+            self.rect.y = self.stop
+            self.direct = -1
+
+        if self.rect.y <= self.start:
+            self.rect.y = self.start
+            self.direct = 1
+
+        self.rect.y += self.direct * 2
 
 
 class Background(pygame.sprite.Sprite):
@@ -205,7 +272,6 @@ def pause_after_first():
         pygame.display.update()
         clock.tick(60)
 
-
 def pause_after_second():
     menu_background = pygame.image.load('complete.JPEG')
     menu_background = pygame.transform.scale(menu_background, (1280, 960))
@@ -224,9 +290,8 @@ def pause_after_second():
         pygame.display.update()
         clock.tick(60)
 
-
 def start_level2():
-    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player
+    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player, enemy
 
     for i in all_sprites_list:
         i.kill()
@@ -268,21 +333,29 @@ def start_level2():
         cheese_list.add(cheese)
         all_sprites_list.add(cheese)
 
+    enemies_list = pygame.sprite.Group()
+    enemies_coords = [[950, 650]]
+    for coord in enemies_coords:
+        enemy = Enemy1(coord[0], coord[1])
+        enemies_list.add(enemy)
+        all_sprites_list.add(enemy)
+
     player = Player(10, 50)
     player.walls = wall_list
     all_sprites_list.add(player)
 
     player.cheese = cheese_list
+    player.enemies = enemies_list
+
     pygame.init()
     clock = pygame.time.Clock()
     start_game()
 
-
 def start_level3():
-    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player
+    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player, enemy
 
     for i in all_sprites_list:
-        i.kill
+        i.kill()
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     all_sprites_list = pygame.sprite.Group()
     wall_list = pygame.sprite.Group()
@@ -324,11 +397,84 @@ def start_level3():
         cheese_list.add(cheese)
         all_sprites_list.add(cheese)
 
+    enemies_list = pygame.sprite.Group()
+    enemies_coords = [[810, 500]]
+    for coord in enemies_coords:
+        enemy = Enemy(coord[0], coord[1])
+        enemies_list.add(enemy)
+        all_sprites_list.add(enemy)
+
     player = Player(10, 50)
     player.walls = wall_list
     all_sprites_list.add(player)
 
     player.cheese = cheese_list
+    player.enemies = enemies_list
+    pygame.init()
+    clock = pygame.time.Clock()
+    start_game()
+
+def restart_first_level():
+    global all_sprites_list, wall_list, cheese, cheese_list, cheese_coords, wall_coords, screen, clock, player, enemy
+
+    for i in all_sprites_list:
+        i.kill()
+
+    all_sprites_list = pygame.sprite.Group()
+    wall_list = pygame.sprite.Group()
+
+    wall_coords = [
+        [0, 0, 1280, 10],
+        [1270, 0, 10, 960],
+        [0, 950, 1140, 10],
+        [0, 0, 10, 1280],
+        [0, 140, 100, 10],
+        [250, 140, 100, 10],
+        [350, 140, 10, 500],
+        [490, 0, 10, 490],
+        [350, 640, 450, 10],
+        [490, 490, 150, 10],
+        [800, 300, 10, 350],
+        [640, 150, 10, 350],
+        [640, 150, 245, 10],
+        [1035, 150, 245, 10],
+        [800, 300, 340, 10],
+        [1140, 300, 10, 1000]
+    ]
+
+    for coord in wall_coords:
+        wall = Wall(coord[0], coord[1], coord[2], coord[3])
+        wall_list.add(wall)
+        all_sprites_list.add(wall)
+
+    cheese = Cheese(50, 50)
+
+    cheese_list = pygame.sprite.Group()
+    cheese_coords = [
+        [1200, 50],
+        [545, 410],
+        [950, 320]
+    ]
+
+    for coord in cheese_coords:
+        cheese = Cheese(coord[0], coord[1])
+        cheese_list.add(cheese)
+        all_sprites_list.add(cheese)
+
+    enemies_list = pygame.sprite.Group()
+    enemies_coords = [[810, 500]]
+    for coord in enemies_coords:
+        enemy = Enemy(coord[0], coord[1])
+        enemies_list.add(enemy)
+        all_sprites_list.add(enemy)
+
+    player = Player(10, 50)
+    player.walls = wall_list
+    all_sprites_list.add(player)
+
+    player.cheese = cheese_list
+    player.enemies = enemies_list
+
     pygame.init()
     clock = pygame.time.Clock()
     start_game()
@@ -354,7 +500,6 @@ def show_menu():
         pygame.display.update()
         clock.tick(60)
 
-
 def end_screen():
     menu_background = pygame.image.load('endscreen.jpg')
     menu_background = pygame.transform.scale(menu_background, (1280, 960))
@@ -376,9 +521,65 @@ def end_screen():
         pygame.display.update()
         clock.tick(60)
 
+def dead_screen_after_first():
+    menu_background = pygame.image.load('dead_screen.JPEG')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    restart = Button(200, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        restart.draw(540, 850, 'Restart', restart_first_level, 50)
+
+        pygame.display.update()
+        clock.tick(60)
+
+def dead_screen_after_second():
+    menu_background = pygame.image.load('dead_screen.JPEG')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    restart = Button(200, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        restart.draw(540, 850, 'Restart', start_level2, 50)
+
+        pygame.display.update()
+        clock.tick(60)
+
+def dead_screen_after_third():
+    menu_background = pygame.image.load('dead_screen.JPEG')
+    menu_background = pygame.transform.scale(menu_background, (1280, 960))
+
+    restart = Button(200, 70)
+
+    show = True
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        screen.blit(menu_background, (0, 0))
+        restart.draw(540, 850, 'Restart', start_level3, 50)
+
+        pygame.display.update()
+        clock.tick(60)
 
 def start_game():
-    global player, screen
+    global player, screen, enemy
 
     start = True
     while start:
@@ -412,11 +613,11 @@ def start_game():
                     player.change_y = 0
 
         player.update()
+        enemy.update()
         screen.fill(BLACK)
         screen.blit(background.image, background.rect)
         all_sprites_list.draw(screen)
         pygame.display.flip()
-
         clock.tick(60)
 
 pygame.init()
@@ -465,11 +666,19 @@ for coord in cheese_coords:
     cheese_list.add(cheese)
     all_sprites_list.add(cheese)
 
+enemies_list = pygame.sprite.Group()
+enemies_coords = [[810, 500]]
+for coord in enemies_coords:
+    enemy = Enemy(coord[0], coord[1])
+    enemies_list.add(enemy)
+    all_sprites_list.add(enemy)
+
 player = Player(10, 50)
 player.walls = wall_list
 all_sprites_list.add(player)
 
 player.cheese = cheese_list
+player.enemies = enemies_list
 
 clock = pygame.time.Clock()
 
